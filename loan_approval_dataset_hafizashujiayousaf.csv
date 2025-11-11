@@ -1,0 +1,61 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import classification_report, precision_score, recall_score, f1_score
+
+# Load dataset
+df = pd.read_csv('Encoding techniques\\Assessments\\loan_approval_dataset.csv')
+
+# Initial inspection
+print(df.head(10))
+print(df.info())
+print(df.columns)
+print(df.isnull().sum())
+
+# Feature and target separation
+features = df.drop(" loan_status", axis=1)
+target = df[" loan_status"]
+
+print(features.head())
+print(target.head())
+
+# Encode target labels
+target_encoder = LabelEncoder()
+target_encoded = target_encoder.fit_transform(target)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(features, target_encoded, test_size=0.2, random_state=23)
+
+# Identify column types
+numeric_features = df.select_dtypes(include=['int64']).columns.tolist()
+categorical_features = [" education", " self_employed"]
+
+# Preprocessing pipeline
+preprocessor = ColumnTransformer(transformers=[
+    ('num', StandardScaler(), numeric_features),
+    ('cat', OneHotEncoder(sparse_output=False), categorical_features)
+])
+
+# Define models
+pipelines = {
+    "Logistic Regression": Pipeline(steps=[('prep', preprocessor), ('clf', LogisticRegression())]),
+    "Random Forest": Pipeline(steps=[('prep', preprocessor), ('clf', RandomForestClassifier())]),
+    "Gradient Boosting": Pipeline(steps=[('prep', preprocessor), ('clf', GradientBoostingClassifier())])
+}
+
+# Train and evaluate each model
+for model_name, pipeline in pipelines.items():
+    pipeline.fit(X_train, y_train)
+    predictions = pipeline.predict(X_test)
+    
+    print(f"\n=== {model_name} ===")
+    print("Classification Report:")
+    print(classification_report(y_test, predictions))
+    print("Precision:", precision_score(y_test, predictions))
+    print("Recall:", recall_score(y_test, predictions))
+    print("F1 Score:", f1_score(y_test, predictions))
+
